@@ -1,63 +1,165 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Motion &amp; Storytelling Director — Studio Video AI v5</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Studio Video AI v5 — Cerita Panjang &amp; Sinematik</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div>
-        <h1>AI Motion &amp; Storytelling Director</h1>
-        <p class="subtitle">Ubah ide singkat atau naskah menjadi adegan lengkap dengan objek properti, Image Prompt, dan Motion Prompt</p>
-      </div>
-      <div class="actions-row">
-        <button id="btnExportJson" class="btn btn-secondary" type="button">Ekspor JSON</button>
-        <button id="btnExportMd" class="btn btn-primary" type="button">Ekspor Markdown (.md)</button>
-      </div>
-    </div>
-  </header>
+  <main class="app">
+    <header>
+      <h1>Studio Video AI <span class="badge">v5 Pro</span></h1>
+      <p>Cerita panjang tanpa batas 60 detik, gerak berjalan mulus, transisi halus, ornamen dunia nyata, suara alami gratis &amp; efek suara (SFX).</p>
+    </header>
 
-  <main class="container main-grid">
-    <section class="panel input-panel">
-      <h2>1. Ide atau Naskah Kasar</h2>
-      <p class="hint">Tulis topik, cerita singkat, atau naskah per paragraf. Tiap kalimat/paragraf akan diracik menjadi adegan terperinci beserta objek di latar.</p>
-
-      <label for="scriptInput">Naskah / Topik Cerita</label>
-      <textarea id="scriptInput" rows="7" placeholder="Contoh: Dulu uang seratus ribu bisa belanja banyak di warung dan jajan bersama keluarga di teras rumah, tapi sekarang cepat sekali habis karena harga kebutuhan naik."></textarea>
-
-      <div class="form-row">
-        <div>
-          <label for="visualStyle">Gaya Visual</label>
-          <select id="visualStyle">
-            <option value="expressive storytelling 2D motion illustration, clean character design, detailed props">2D Storytelling Illustration</option>
-            <option value="3D Pixar-inspired animation render, warm subsurface lighting, rich tactile props">3D Animation (Pixar Style)</option>
-            <option value="cinematic live-action film still, 35mm lens, natural dramatic lighting">Cinematic Film / Live-Action</option>
-            <option value="high-detail anime feature film style, expressive lighting, atmospheric background">Anime Cinema</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="aspectRatio">Rasio Layar</label>
-          <select id="aspectRatio">
-            <option value="--ar 9:16">Vertikal 9:16 (TikTok / Reels / Shorts)</option>
-            <option value="--ar 16:9">Horizontal 16:9 (YouTube)</option>
-            <option value="--ar 1:1">Persegi 1:1 (Feed)</option>
-          </select>
-        </div>
-      </div>
-
-      <button id="btnGenerate" class="btn btn-primary btn-full" type="button">Racik Adegan, Objek &amp; Prompt</button>
+    <section class="card error" id="errorBox" hidden>
+      <p id="errorText"></p>
     </section>
 
-    <section class="panel output-panel">
-      <div class="output-header">
-        <h2>2. Rencana Adegan &amp; Prompt Siap Pakai</h2>
-        <span id="sceneCount" class="badge">0 Adegan</span>
+    <details class="card" id="settings">
+      <summary>⚙️ Pengaturan koneksi &amp; suara alami gratis</summary>
+      <label for="workerUrl">URL Cloudflare Worker (opsional jika mode lokal/browser)</label>
+      <input id="workerUrl" type="url" placeholder="https://nama-worker.akun.workers.dev">
+
+      <label for="appToken">Token akses Worker (opsional)</label>
+      <input id="appToken" type="password" placeholder="Kosongkan jika tidak memakai token">
+
+      <label class="check">
+        <input id="useBrowserSpeech" type="checkbox" checked>
+        <span>Gunakan suara bawaan perangkat/browser (Web Speech API gratis) jika Worker belum terpasang atau terganggu</span>
+      </label>
+
+      <div class="row">
+        <button id="btnSaveSettings" type="button" class="ghost">Simpan</button>
+        <button id="btnTest" type="button" class="ghost">Tes koneksi</button>
+        <button id="btnClearVoices" type="button" class="ghost">Hapus karakter tersimpan</button>
       </div>
-      <div id="scenesContainer" class="scenes-list"></div>
+      <pre id="healthOut" class="small" hidden></pre>
+    </details>
+
+    <section class="card">
+      <h2>1. Naskah Cerita (Bisa Cerita Panjang)</h2>
+      <label for="script">Tulis dialog atau narasi adegan demi adegan</label>
+      <textarea id="script" maxlength="12000" placeholder="Contoh:
+Narator: Pagi cerah di halaman rumah kayu...
+Kakek: Jalan pelan-pelan ya, cucuku."></textarea>
+      <div class="row between">
+        <span class="small" id="counter">0 / 12000</span>
+        <button id="btnSample" type="button" class="link">Isi contoh cerita panjang</button>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="style">Gaya visual</label>
+          <select id="style">
+            <option value="animasi3d">Animasi 3D Halus</option>
+            <option value="soft">Buku Cerita Lembut</option>
+            <option value="komik">Komik Garis Tegas</option>
+            <option value="clay">Tanah Liat (Clay)</option>
+          </select>
+        </div>
+        <div>
+          <label for="genre">Suasana cerita</label>
+          <select id="genre">
+            <option value="anak">Keluarga &amp; Anak</option>
+            <option value="drama">Drama Kehidupan</option>
+            <option value="komedi">Komedi Ringan</option>
+            <option value="inspirasi">Inspiratif</option>
+          </select>
+        </div>
+        <div>
+          <label for="lang">Bahasa suara</label>
+          <select id="lang">
+            <option value="id">Indonesia (id-ID)</option>
+            <option value="en">English (en-US / en-GB)</option>
+          </select>
+        </div>
+        <div>
+          <label for="ratio">Rasio layar</label>
+          <select id="ratio">
+            <option value="9:16">9:16 (Reels / Shorts / TikTok)</option>
+            <option value="16:9">16:9 (YouTube / Landscape)</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxScenes">Jumlah adegan (hingga 24 adegan)</label>
+          <select id="maxScenes">
+            <option value="4">4 adegan</option>
+            <option value="6">6 adegan</option>
+            <option value="8" selected>8 adegan</option>
+            <option value="12">12 adegan (cerita panjang)</option>
+            <option value="18">18 adegan (film pendek penuh)</option>
+            <option value="24">24 adegan (durasi panjang)</option>
+          </select>
+        </div>
+        <div>
+          <label for="targetSec">Target durasi cerita</label>
+          <select id="targetSec">
+            <option value="45">~45 detik</option>
+            <option value="60">~60 detik</option>
+            <option value="120" selected>~2 menit (120 detik)</option>
+            <option value="180">~3 menit (180 detik)</option>
+            <option value="300">~5 menit (300 detik — tanpa batas 60 dtk)</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="check">
+        <input id="sfxEnabled" type="checkbox" checked>
+        <span>Aktifkan Efek Suara (SFX) otomatis: langkah kaki saat berjalan, angin/alam, detak hangat adegan &amp; transisi halus</span>
+      </label>
+
+      <label class="check">
+        <input id="realProps" type="checkbox" checked>
+        <span>Tampilkan ornamen kehidupan dunia nyata di frame (pot tanaman, kursi/meja, lampu jalan, awan, dedaunan, papan nama)</span>
+      </label>
+
+      <label for="musicUrl">URL musik latar MP3/OGG (opsional)</label>
+      <input id="musicUrl" type="url" placeholder="https://... (kosongkan jika hanya ingin suara + SFX)">
+
+      <div class="row">
+        <button id="btnStart" type="button" class="primary">▶ Buat Video Lengkap</button>
+        <button id="btnResume" type="button" class="warn" hidden>↻ Lanjutkan</button>
+      </div>
+    </section>
+
+    <details class="card" id="library">
+      <summary>🎭 Karakter &amp; suara tersimpan (Anak, Dewasa, Kakek/Nenek, Rambut &amp; Rekaman)</summary>
+      <p class="small">Atur nama, kategori usia (Anak Laki-laki, Anak Perempuan, Dewasa Pria, Dewasa Wanita, Kakek, Nenek), gaya rambut (Pendek, Panjang, Botak, Kuncir, Bob, Sanggul, Uban), pakaian, suara TTS alami, atau rekaman suara sendiri.</p>
+      <label class="check">
+        <input id="skipCast" type="checkbox">
+        <span>Lewati layar casting jika semua tokoh sudah tersimpan</span>
+      </label>
+      <p class="small" id="libEmpty">Belum ada karakter tersimpan di perangkat ini.</p>
+      <div id="libList"></div>
+    </details>
+
+    <section class="card" id="castCard" hidden>
+      <h2>2. Casting Tokoh, Gaya Rambut &amp; Suara</h2>
+      <p class="small">Sesuaikan setiap tokoh sebelum video direkam. Rekaman suara atau unggah audio akan diprioritaskan otomatis.</p>
+      <div id="castList"></div>
+      <div class="row">
+        <button id="btnLockAll" type="button" class="ghost">Simpan semua tokoh</button>
+        <button id="btnCastDone" type="button" class="primary">Lanjutkan produksi →</button>
+      </div>
+    </section>
+
+    <section class="card" id="progressCard" hidden>
+      <h2>3. Proses Produksi</h2>
+      <ul class="steps" id="steps"></ul>
+      <p class="small" id="detail"></p>
+      <canvas id="stage" hidden></canvas>
+      <pre id="log" class="small"></pre>
+    </section>
+
+    <section class="card" id="resultCard" hidden>
+      <h2>4. Hasil Video Siap Unduh</h2>
+      <video id="player" controls playsinline></video>
+      <div class="row">
+        <a id="btnDownload" class="btn primary" download>⬇ Unduh Video</a>
+        <button id="btnShare" type="button" class="ghost" hidden>↗ Bagikan</button>
+      </div>
     </section>
   </main>
 
