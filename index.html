@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Studio Video AI v5 — Cerita Panjang &amp; Sinematik</title>
+  <title>Studio Video AI v5 — Cerita Panjang, Storytelling &amp; Sinematik</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app">
     <header>
       <h1>Studio Video AI <span class="badge">v5 Pro</span></h1>
-      <p>Cerita panjang tanpa batas 60 detik, gerak berjalan mulus, transisi halus, ornamen dunia nyata, suara alami gratis &amp; efek suara (SFX).</p>
+      <p>Cerita panjang tanpa batas 60 detik, storytelling &amp; prompt adegan otomatis, gerak berjalan mulus, transisi halus, ornamen dunia nyata, suara alami gratis &amp; efek suara (SFX).</p>
     </header>
 
     <section class="card error" id="errorBox" hidden>
@@ -19,7 +19,7 @@
 
     <details class="card" id="settings">
       <summary>⚙️ Pengaturan koneksi &amp; suara alami gratis</summary>
-      <label for="workerUrl">URL Cloudflare Worker (opsional jika mode lokal/browser)</label>
+      <label for="workerUrl">URL Cloudflare Worker (opsional)</label>
       <input id="workerUrl" type="url" placeholder="https://nama-worker.akun.workers.dev">
 
       <label for="appToken">Token akses Worker (opsional)</label>
@@ -124,6 +124,12 @@ Kakek: Jalan pelan-pelan ya, cucuku."></textarea>
       </div>
     </section>
 
+    <section class="card" id="storyCard" hidden>
+      <h2>1B. Storytelling &amp; Prompt Director</h2>
+      <p class="small">Adegan otomatis lengkap dengan narasi, objek &amp; properti, Image Prompt, dan Motion Prompt siap salin.</p>
+      <div id="storyScenes"></div>
+    </section>
+
     <details class="card" id="library">
       <summary>🎭 Karakter &amp; suara tersimpan (Anak, Dewasa, Kakek/Nenek, Rambut &amp; Rekaman)</summary>
       <p class="small">Atur nama, kategori usia (Anak Laki-laki, Anak Perempuan, Dewasa Pria, Dewasa Wanita, Kakek, Nenek), gaya rambut (Pendek, Panjang, Botak, Kuncir, Bob, Sanggul, Uban), pakaian, suara TTS alami, atau rekaman suara sendiri.</p>
@@ -140,29 +146,4 @@ Kakek: Jalan pelan-pelan ya, cucuku."></textarea>
       <p class="small">Sesuaikan setiap tokoh sebelum video direkam. Rekaman suara atau unggah audio akan diprioritaskan otomatis.</p>
       <div id="castList"></div>
       <div class="row">
-        <button id="btnLockAll" type="button" class="ghost">Simpan semua tokoh</button>
-        <button id="btnCastDone" type="button" class="primary">Lanjutkan produksi →</button>
-      </div>
-    </section>
-
-    <section class="card" id="progressCard" hidden>
-      <h2>3. Proses Produksi</h2>
-      <ul class="steps" id="steps"></ul>
-      <p class="small" id="detail"></p>
-      <canvas id="stage" hidden></canvas>
-      <pre id="log" class="small"></pre>
-    </section>
-
-    <section class="card" id="resultCard" hidden>
-      <h2>4. Hasil Video Siap Unduh</h2>
-      <video id="player" controls playsinline></video>
-      <div class="row">
-        <a id="btnDownload" class="btn primary" download>⬇ Unduh Video</a>
-        <button id="btnShare" type="button" class="ghost" hidden>↗ Bagikan</button>
-      </div>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
+        <button id="btnLockAll" type="button" class="ghost">Simpan
