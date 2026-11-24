@@ -1,7 +1,0 @@
-name = "studio-video-ai-worker"
-main = "src/index.js"
-compatibility_date = "2025-04-01"
-
-# Opsional: aktifkan jika ingin memberi token akses ke frontend
-# [vars]
-# APP_TOKEN = "isi-token-rahasia-jika-perlu"
