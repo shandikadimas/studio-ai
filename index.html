@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Motion &amp; Storytelling Director — Studio Video AI v5</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div>
+        <h1>AI Motion &amp; Storytelling Director</h1>
+        <p class="subtitle">Ubah ide singkat atau naskah menjadi adegan lengkap dengan objek properti, Image Prompt, dan Motion Prompt</p>
+      </div>
+      <div class="actions-row">
+        <button id="btnExportJson" class="btn btn-secondary" type="button">Ekspor JSON</button>
+        <button id="btnExportMd" class="btn btn-primary" type="button">Ekspor Markdown (.md)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <section class="panel input-panel">
+      <h2>1. Ide atau Naskah Kasar</h2>
+      <p class="hint">Tulis topik, cerita singkat, atau naskah per paragraf. Tiap kalimat/paragraf akan diracik menjadi adegan terperinci beserta objek di latar.</p>
+
+      <label for="scriptInput">Naskah / Topik Cerita</label>
+      <textarea id="scriptInput" rows="7" placeholder="Contoh: Dulu uang seratus ribu bisa belanja banyak di warung dan jajan bersama keluarga di teras rumah, tapi sekarang cepat sekali habis karena harga kebutuhan naik."></textarea>
+
+      <div class="form-row">
+        <div>
+          <label for="visualStyle">Gaya Visual</label>
+          <select id="visualStyle">
+            <option value="expressive storytelling 2D motion illustration, clean character design, detailed props">2D Storytelling Illustration</option>
+            <option value="3D Pixar-inspired animation render, warm subsurface lighting, rich tactile props">3D Animation (Pixar Style)</option>
+            <option value="cinematic live-action film still, 35mm lens, natural dramatic lighting">Cinematic Film / Live-Action</option>
+            <option value="high-detail anime feature film style, expressive lighting, atmospheric background">Anime Cinema</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="aspectRatio">Rasio Layar</label>
+          <select id="aspectRatio">
+            <option value="--ar 9:16">Vertikal 9:16 (TikTok / Reels / Shorts)</option>
+            <option value="--ar 16:9">Horizontal 16:9 (YouTube)</option>
+            <option value="--ar 1:1">Persegi 1:1 (Feed)</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btnGenerate" class="btn btn-primary btn-full" type="button">Racik Adegan, Objek &amp; Prompt</button>
+    </section>
+
+    <section class="panel output-panel">
+      <div class="output-header">
+        <h2>2. Rencana Adegan &amp; Prompt Siap Pakai</h2>
+        <span id="sceneCount" class="badge">0 Adegan</span>
+      </div>
+      <div id="scenesContainer" class="scenes-list"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
