@@ -1,0 +1,12 @@
+name = "studio-video-ai"
+main = "worker.js"
+compatibility_date = "2025-11-01"
+
+# Wajib: Workers AI (cerita + gambar)
+[ai]
+binding = "AI"
+
+# Opsional:
+# [vars]
+# APP_TOKEN = "isi-token-rahasia"   # lalu isi sama di kolom "Token akses Worker" situs
+# LLM_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
