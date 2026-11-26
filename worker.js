@@ -68,10 +68,9 @@ const MODELS = {
   flux: { id: "@cf/black-forest-labs/flux-1-schnell", build: (p) => ({ prompt: p.prompt.slice(0, 2000), steps: 4 }) },
   lucid: { id: "@cf/leonardo/lucid-origin", build: (p) => ({ prompt: p.prompt, width: p.w, height: p.h, steps: 12, seed: p.seed }) },
   phoenix: { id: "@cf/leonardo/phoenix-1.0", build: (p) => ({ prompt: p.prompt, negative_prompt: p.negative, width: p.w, height: p.h, steps: 25, seed: p.seed }) },
-  sdxlbase: { id: "@cf/stabilityai/stable-diffusion-xl-base-1.0", build: (p) => ({ prompt: p.prompt, negative_prompt: p.negative, width: p.w, height: p.h, num_steps: 20, guidance: 7.5, seed: p.seed }) },
 };
-const IMG_ALIASES = { sdxl: "flux", dreamshaper: "flux" }; // dihapus Cloudflare 20 Nov 2026
-const IMG_CHAIN = ["flux", "lucid", "phoenix", "sdxlbase"];
+const IMG_ALIASES = { sdxl: "flux", dreamshaper: "flux", sdxlbase: "flux" }; // dihapus Cloudflare 20 Nov 2026
+const IMG_CHAIN = ["flux", "lucid", "phoenix"];
 const STYLE_TEXT = {
   animasi3d: "feature-film 3D animation look, warm cinematic lighting, rich depth of field",
   soft: "gentle storybook watercolor illustration, soft pastel colors, depth",
@@ -131,14 +130,17 @@ async function image(url, env) {
   const p = imageParams(url);
   const asked = IMG_ALIASES[url.searchParams.get("model")] || url.searchParams.get("model");
   const order = [...new Set([MODELS[asked] ? asked : "flux", ...IMG_CHAIN])]; // FLUX menghasilkan gambar persegi; halaman web menampilkannya utuh
-  const errors = [];
+  const errors = []; let quota = false;
   if (env && env.AI) {
     for (const key of order) {
       try {
         const bytes = await toBytes(await runImageModel(env, key, p));
         if (bytes.length < 1000) throw new Error("gambar kosong");
         return new Response(bytes, { headers: { "content-type": sniffType(bytes), "x-source": key, "cache-control": "no-store", ...CORS } });
-      } catch (e) { errors.push(`${key}: ${msgOf(e).slice(0, 160)}`); }
+      } catch (e) {
+        const m = msgOf(e); errors.push(`${key}: ${m.slice(0, 160)}`);
+        if (/4006|daily free allocation|neurons/i.test(m)) { quota = true; break; } // jatah harian habis: semua model Workers AI ikut habis
+      }
     }
   } else errors.push('binding AI belum aktif ([ai] binding = "AI")');
   try {
@@ -148,6 +150,7 @@ async function image(url, env) {
     if (bytes.length < 1000) throw new Error("pollinations: gambar kosong");
     return new Response(bytes, { headers: { "content-type": sniffType(bytes), "x-source": "pollinations", "x-edge-error": errors.join(" | ").slice(0, 400), "cache-control": "no-store", ...CORS } });
   } catch (e) { errors.push(`pollinations: ${msgOf(e).slice(0, 120)}`); }
+  if (quota) return json({ ok: false, quota: true, error: `KUOTA_HABIS: jatah gratis harian Workers AI (10.000 neuron) habis, reset sekitar 07.00 WIB. ${errors.join(" | ").slice(0, 300)}` }, 429);
   return json({ ok: false, error: `Gambar gagal dibuat — ${errors.join(" | ")}` }, 502);
 }
 
@@ -327,82 +330,4 @@ async function edgeTts(text, voice, pitch, rate) {
     let done = false;
     const finish = (err) => {
       if (done) return; done = true; clearTimeout(timer);
-      try { ws.close(1000, "ok"); } catch (e) { /* abaikan */ }
-      if (err) return reject(err);
-      const total = chunks.reduce((n, c) => n + c.length, 0);
-      if (!total) return reject(new Error("Edge tidak mengirim audio"));
-      const out = new Uint8Array(total); let o = 0; chunks.forEach((c) => { out.set(c, o); o += c.length; });
-      resolve(out);
-    };
-    const timer = setTimeout(() => finish(new Error("Edge timeout")), 15000);
-    ws.addEventListener("message", (ev) => {
-      const d = ev.data;
-      if (typeof d === "string") { if (d.includes("Path:turn.end")) finish(); return; }
-      const buf = d instanceof ArrayBuffer ? d : d && d.buffer ? d.buffer : null;
-      if (!buf || buf.byteLength < 2) return;
-      const hl = new DataView(buf).getUint16(0);
-      if (dec.decode(buf.slice(2, 2 + hl)).includes("Path:audio")) chunks.push(new Uint8Array(buf.slice(2 + hl)));
-    });
-    ws.addEventListener("error", () => finish(new Error("Edge: koneksi WebSocket error")));
-    ws.addEventListener("close", () => finish());
-    ws.send(`X-Timestamp:${stamp()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);
-    ws.send(`X-RequestId:${conn}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${stamp()}Z\r\nPath:ssml\r\n\r\n<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'><voice name='${voice}'><prosody pitch='${signed(pitch, "Hz")}' rate='${signed(rate, "%")}' volume='+0%'>${xmlEsc(text)}</prosody></voice></speak>`);
-  });
-}
-
-function splitForGoogle(text, max = 190) {
-  const parts = []; let rest = text.trim();
-  while (rest.length > max) {
-    let cut = Math.max(rest.lastIndexOf(". ", max), rest.lastIndexOf(", ", max), rest.lastIndexOf(" ", max));
-    if (cut < 40) cut = max;
-    parts.push(rest.slice(0, cut + 1).trim()); rest = rest.slice(cut + 1).trim();
-  }
-  if (rest) parts.push(rest);
-  return parts;
-}
-async function googleTts(text, tl) {
-  const bufs = [];
-  for (const part of splitForGoogle(text)) {
-    const r = await fetch(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${tl}&q=${encodeURIComponent(part)}`, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36", Referer: "https://translate.google.com/" },
-    });
-    if (!r.ok) throw new Error(`Google TTS ${r.status}`);
-    bufs.push(new Uint8Array(await r.arrayBuffer()));
-  }
-  const total = bufs.reduce((n, b) => n + b.length, 0);
-  if (!total) throw new Error("Google TTS kosong");
-  const out = new Uint8Array(total); let o = 0; bufs.forEach((b) => { out.set(b, o); o += b.length; });
-  return out;
-}
-const audio = (bytes, source, edgeErr = "") =>
-  new Response(bytes, { headers: { "content-type": "audio/mpeg", "x-source": source, ...(edgeErr ? { "x-edge-error": edgeErr.slice(0, 200) } : {}), "cache-control": "no-store", ...CORS } });
-
-async function tts(url) {
-  const q = url.searchParams;
-  const text = String(q.get("text") || "").replace(/\s+/g, " ").trim().slice(0, 700);
-  if (!text) return json({ ok: false, error: "Teks suara kosong." }, 400);
-  const v = q.get("voice") || "";
-  const voice = /^[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural$/.test(v) ? v : "id-ID-ArdiNeural";
-  const pitch = clampInt(q.get("pitch"), -100, 100, 0), rate = clampInt(q.get("rate"), -50, 50, 0);
-  let edgeErr = "";
-  if (q.get("engine") !== "google") {
-    try { return audio(await edgeTts(text, voice, pitch, rate), "edge-tts"); }
-    catch (e) { edgeErr = msgOf(e); }
-  }
-  try { return audio(await googleTts(text, voice.startsWith("en") ? "en" : "id"), "google-tts", edgeErr); }
-  catch (e) { return json({ ok: false, error: `Suara gagal — edge: ${edgeErr || "-"} | google: ${msgOf(e)}` }, 502); }
-}
-
-/* ======================== PROXY MUSIK /api/fetch ======================== */
-function privateHost(h) {
-  h = h.toLowerCase();
-  return h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || h === "[::1]" || /^(127|10|0)\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
-}
-async function proxy(url) {
-  let u; try { u = new URL(url.searchParams.get("url") || ""); } catch (e) { return json({ ok: false, error: "URL musik tidak valid." }, 400); }
-  if (!/^https?:$/.test(u.protocol) || privateHost(u.hostname)) return json({ ok: false, error: "URL musik tidak diizinkan." }, 403);
-  const r = await fetch(u.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!r.ok) return json({ ok: false, error: `Sumber musik membalas ${r.status}.` }, 502);
-  if (Number(r.headers.get("content-length") || 0) > 30e6) return json({ ok: false, error: "File musik terlalu besar (maks 30 MB)." }, 413);
-  return new Response(r.body, { headers: { "content-type": r.headers.get("content-type") || "audio/mpeg", "x-source": "proxy", "cache-control": "public, max-age=3600", ...CORS } });
-}
+      try { ws.close(1000, "ok"); } catch (e) { /* aba
