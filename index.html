@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Studio Video AI v6 — Story Motion Sinematik</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Studio Video AI <span class="badge">v6 Pro</span></h1>
+      <p>Story Motion berlapis: kamera sinematik, objek naratif yang muncul sesuai kalimat, karakter tampil selektif, subtitle sinkron suara, musik adaptif dengan auto-ducking. Narator hanya membaca naskah.</p>
+    </header>
+
+    <section class="card error" id="errorBox" hidden>
+      <p id="errorText"></p>
+    </section>
+
+    <details class="card" id="settings">
+      <summary>⚙️ Pengaturan koneksi &amp; suara alami gratis</summary>
+      <label for="workerUrl">URL Cloudflare Worker (opsional)</label>
+      <input id="workerUrl" type="url" placeholder="https://nama-worker.akun.workers.dev">
+
+      <label for="appToken">Token akses Worker (opsional)</label>
+      <input id="appToken" type="password" placeholder="Kosongkan jika tidak memakai token">
+
+      <label class="check">
+        <input id="useBrowserSpeech" type="checkbox" checked>
+        <span>Jika suara Worker gagal, tetap lanjut membuat video <b>tanpa suara</b> pada baris itu (bukan berhenti)</span>
+      </label>
+
+      <label for="bridgeUrl">Jembatan gambar lokal (opsional, mis. Antigravity CLI di Termux)</label>
+      <input id="bridgeUrl" type="url" placeholder="http://127.0.0.1:8787">
+      <p class="small">Jika diisi, gambar dicoba dulu lewat program di HP/PC Anda (lihat bridge.py). Jika gagal, otomatis lanjut ke Worker &amp; cadangan lain.</p>
+
+      <label for="imageModel">Mesin gambar latar (Workers AI)</label>
+      <select id="imageModel">
+        <option value="flux">FLUX schnell (cepat, seimbang)</option>
+        <option value="lucid">Lucid Origin (detail, lebih bersih)</option>
+        <option value="phoenix">Phoenix 1.0 (prompt akurat, ilustrasi)</option>
+      </select>
+      <p class="small">Jika model pilihan gagal, otomatis mencoba mesin lain di Worker, lalu AI Horde (Stable Diffusion gratis open source, langsung dari browser, antre lebih lambat), lalu Pollinations. SDXL Base, SDXL Lightning &amp; DreamShaper 8 sudah dihapus Cloudflare sejak 20 Nov 2026, pilihan lama otomatis dialihkan ke FLUX. Pada gaya Komik Adegan Penuh, tokoh dan aksi digambar langsung di dalam gambar. Pada gaya lain, latar dibuat tanpa orang agar tokoh digambar terpisah.</p>
+
+      <div class="row">
+        <button id="btnSaveSettings" type="button" class="ghost">Simpan</button>
+        <button id="btnTest" type="button" class="ghost">Tes koneksi</button>
+        <button id="btnTestImage" type="button" class="ghost">Uji gambar</button>
+        <button id="btnClearVoices" type="button" class="ghost">Hapus karakter tersimpan</button>
+      </div>
+      <pre id="healthOut" class="small" hidden></pre>
+      <img id="imgTest" alt="Gambar uji" hidden>
+    </details>
+
+    <section class="card">
+      <h2>1. Naskah Cerita (Bisa Cerita Panjang)</h2>
+      <label for="script">Tulis dialog atau narasi adegan demi adegan</label>
+      <textarea id="script" maxlength="40000" placeholder="Contoh:
+Narator: Pagi cerah di halaman rumah kayu...
+Kakek: Jalan pelan-pelan ya, cucuku."></textarea>
+      <div class="row between">
+        <span class="small" id="counter">0 / 40000</span>
+        <button id="btnSample" type="button" class="link">Isi contoh cerita panjang</button>
+      </div>
+
+      <p class="small" id="cleanNote">Label seperti JUDUL:, FORMAT:, GAYA BAHASA:, SCENE 1:, VISUAL: otomatis dibuang dari suara &amp; subtitle. Catatan visual hanya dipakai sebagai konteks gambar.</p>
+
+      <div class="grid">
+        <div>
+          <label for="style">Gaya visual</label>
+          <select id="style">
+            <option value="komikpenuh" selected>Komik Adegan Penuh (1 baris = 1 gambar utuh: tokoh, aksi, latar)</option>
+            <option value="animasi3d">Animasi 3D Halus</option>
+            <option value="soft">Buku Cerita Lembut</option>
+            <option value="komik">Komik Garis Tegas</option>
+            <option value="clay">Tanah Liat (Clay)</option>
+            <option value="penanimasi">Sketsa Pena Animator (tangan menggambar tiap cerita &amp; masalah)</option>
+            <option value="motiongfx">Motion Graphic Blueprint (penjelasan: teks + diagram)</option>
+          </select>
+        </div>
+        <div>
+          <label for="genre">Suasana cerita</label>
+          <select id="genre">
+            <option value="anak">Keluarga &amp; Anak</option>
+            <option value="drama">Drama Kehidupan</option>
+            <option value="komedi">Komedi Ringan</option>
+            <option value="inspirasi">Inspiratif</option>
+          </select>
+        </div>
+        <div>
+          <label for="lang">Bahasa suara</label>
+          <select id="lang">
+            <option value="id">Indonesia (id-ID)</option>
+            <option value="en">English (en-US / en-GB)</option>
+          </select>
+        </div>
+        <div>
+          <label for="ratio">Rasio layar</label>
+          <select id="ratio">
+            <option value="9:16">9:16 (Reels / Shorts / TikTok)</option>
+            <option value="16:9">16:9 (YouTube / Landscape)</option>
+            <option value="21:9">21:9 (Sinematik layar lebar)</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxScenes">Jumlah adegan (hingga 24 adegan)</label>
+          <select id="maxScenes">
+            <option value="4">4 adegan</option>
+            <option value="6">6 adegan</option>
+            <option value="8" selected>8 adegan</option>
+            <option value="12">12 adegan (cerita panjang)</option>
+            <option value="18">18 adegan (film pendek penuh)</option>
+            <option value="24">24 adegan (durasi panjang)</option>
+            <option value="36">36 adegan (film panjang)</option>
+            <option value="48">48 adegan (film penuh)</option>
+          </select>
+        </div>
+        <div>
+          <label for="targetSec">Target durasi cerita</label>
+          <select id="targetSec">
+            <option value="45">~45 detik</option>
+            <option value="60">~60 detik</option>
+            <option value="120" selected>~2 menit (120 detik)</option>
+            <option value="180">~3 menit (180 detik)</option>
+            <option value="300">~5 menit (300 detik — tanpa batas 60 dtk)</option>
+            <option value="600">~10 menit (600 detik)</option>
+            <option value="900">~15 menit (900 detik)</option>
+            <option value="1800">~30 menit (film panjang)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="visualMode">Mode visual adegan</label>
+          <select id="visualMode">
+            <option value="auto" selected>Otomatis (objek &amp; karakter bergantian)</option>
+            <option value="objek">Fokus objek &amp; ilustrasi (tanpa karakter)</option>
+            <option value="campur">Objek + karakter saat bicara</option>
+            <option value="karakter">Fokus karakter terus</option>
+          </select>
+        </div>
+        <div>
+          <label for="motion">Intensitas gerak kamera</label>
+          <select id="motion">
+            <option value="halus">Halus</option>
+            <option value="sedang" selected>Sedang</option>
+            <option value="dinamis">Dinamis</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="mgHandle">Akun / watermark (khusus Motion Graphic, opsional)</label>
+          <input id="mgHandle" type="text" maxlength="30" placeholder="@akunmu">
+        </div>
+        <div>
+          <label for="mgCta">Kata ajakan komentar (opsional)</label>
+          <input id="mgCta" type="text" maxlength="14" placeholder="mis. STUDIO">
+        </div>
+      </div>
+
+      <label class="check">
+        <input id="sfxEnabled" type="checkbox" checked>
+        <span>Aktifkan Efek Suara (SFX): langkah kaki, pop objek, angin/alam &amp; transisi (musik latar tetap aktif)</span>
+      </label>
+
+      <label class="check">
+        <input id="cineFx" type="checkbox" checked>
+        <span>Efek sinematik: color grading hangat, debu &amp; serpihan di berkas cahaya, bokeh anamorfik, film grain (gerak kamera orbit, dolly, crane &amp; rack focus selalu berganti tiap adegan)</span>
+      </label>
+
+      <label class="check">
+        <input id="realProps" type="checkbox" checked>
+        <span>Tampilkan ornamen kehidupan dunia nyata di frame (pot tanaman, kursi/meja, lampu jalan, awan, dedaunan, papan nama)</span>
+      </label>
+
+      <label for="musicUrl">URL musik latar MP3/OGG (opsional)</label>
+      <input id="musicUrl" type="url" placeholder="https://... (kosongkan jika hanya ingin suara + SFX)">
+
+      <div class="row">
+        <button id="btnStart" type="button" class="primary">▶ Buat Video Lengkap</button>
+        <button id="btnResume" type="button" class="warn" hidden>↻ Lanjutkan</button>
+      </div>
+    </section>
+
+    <section class="card" id="storyCard" hidden>
+      <h2>1B. Storytelling &amp; Prompt Director</h2>
+      <p class="small">Adegan otomatis lengkap dengan narasi, objek &amp; properti, Image Prompt, dan Motion Prompt siap salin.</p>
+      <div id="storyScenes"></div>
+    </section>
+
+    <details class="card" id="library">
+      <summary>🎭 Karakter &amp; suara tersimpan (Anak, Dewasa, Kakek/Nenek, Rambut &amp; Rekaman)</summary>
+      <p class="small">Atur nama, kategori usia (Anak Laki-laki, Anak Perempuan, Dewasa Pria, Dewasa Wanita, Kakek, Nenek), gaya rambut (Pendek, Panjang, Botak, Kuncir, Bob, Sanggul, Uban), pakaian, suara TTS alami, atau rekaman suara sendiri.</p>
+      <div class="creator" id="creator">
+        <h3>➕ Buat karakter baru</h3>
+        <div id="creatorBody"></div>
+      </div>
+      <label class="check">
+        <input id="skipCast" type="checkbox">
+        <span>Lewati layar casting jika semua tokoh sudah tersimpan</span>
+      </label>
+      <p class="small" id="libEmpty">Belum ada karakter tersimpan di perangkat ini.</p>
+      <div id="libList"></div>
+    </details>
+
+    <section class="card" id="castCard" hidden>
+      <h2>2. Casting Tokoh, Gaya Rambut &amp; Suara</h2>
+      <p class="small">Sesuaikan setiap tokoh sebelum video direkam. Rekaman suara atau unggah audio akan diprioritaskan otomatis.</p>
+      <div id="castList"></div>
+      <div class="row">
+        <button id="btnLockAll" type="button" class="ghost">Simpan semua</button>
+        <button id="btnCastDone" type="button" class="primary">Lanjutkan produksi</button>
+      </div>
+    </section>
+
+    <section class="card" id="progressCard" hidden>
+      <h2>Progres produksi</h2>
+      <ol id="steps" class="steps"></ol>
+      <p id="detail" class="small"></p>
+      <canvas id="stage" hidden></canvas>
+    </section>
+
+    <section class="card" id="resultCard" hidden>
+      <h2>✅ Video selesai</h2>
+      <video id="player" controls playsinline preload="metadata"></video>
+      <div class="row">
+        <a id="btnDownload" class="btn primary">⬇ Unduh video</a>
+      </div>
+    </section>
+
+    <details class="card">
+      <summary>📋 Log kerja para agen</summary>
+      <pre id="log" class="small"></pre>
+    </details>
+  </main>
+  <script src="pen.js?v=68"></script>
+  <script src="script.js?v=68"></script>
+</body>
+</html>
