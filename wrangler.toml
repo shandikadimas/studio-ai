@@ -1,0 +1,19 @@
+name = "ai-motion-director-worker"   # sama dengan worker lama di README, supaya URL-nya tidak berubah
+main = "worker.js"
+compatibility_date = "2025-11-01"
+keep_vars = true   # jangan hapus variabel/secret BRAIN_* yang diisi lewat dashboard saat deploy
+
+# Wajib: Workers AI (cerita + gambar)
+[ai]
+binding = "AI"
+
+# Opsional:
+# [vars]
+# APP_TOKEN = "isi-token-rahasia"   # lalu isi sama di kolom "Token akses Worker" situs
+# LLM_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+# Otak LLM eksternal (Gemini lewat API kompatibel OpenAI). Bukan rahasia, jadi aman di sini.
+# BRAIN_API_KEY (rahasia) dikirim otomatis oleh GitHub Actions dari GitHub Secret, JANGAN ditulis di file ini.
+[vars]
+BRAIN_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+BRAIN_MODEL = "gemini-3.8-flash"
